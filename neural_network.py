@@ -23,12 +23,14 @@ def network_to_dataset(layer):
 # Convert single value output shown in dataset to output layer neurons value
 def dataset_to_network(value, n_units):
 	output_layer = np.zeros(n_units)
-	output_layer[value] = 1
+	output_layer[value] = 1.0
 	return output_layer
 
 # Cross-entropy cost function
 def cost_function(output, expected):
-	cost = sum([((-expected[k] * np.log(output[k])) - (1 - expected[k]) * np.log(1 - output[k])) for k in range(len(expected))])
+	cost = 0.0
+	for k in range(len(expected)):
+		cost += (-expected[k] * np.log(output[k])) - ((1 - expected[k]) * np.log(1 - output[k]))
 	return cost
 
 class NeuralNetwork(object):
@@ -105,17 +107,17 @@ class NeuralNetwork(object):
 	def update_weights(self, l_rate):
 		# Weights of the connections that go from the hidden layer to the output layer(output_weights)
 		for k in range(self.n_output):
-			self.output_weights[k][-1] = self.output_weights[k][-1] + (l_rate * self.output_delta[k])  # Update hidden bias weight
+			self.output_weights[k][-1] -= (l_rate * self.output_delta[k])  # Update hidden bias weight
 			for j in range(self.n_hidden):
 		#		self.output_weights[k][j] = self.output_weights[k] - (l_rate * self.output_DELTA[k][j])
-				self.output_weights[k][j] = self.output_weights[k][j] + (l_rate * self.output_delta[k] * self.hidden_activation[j])
+				self.output_weights[k][j] -= (l_rate * self.output_delta[k] * self.hidden_activation[j])
 
 		# Weights of the connections that go from the input layer to the hidden layer(hidden_weights)
 		for j in range(self.n_hidden):
-			self.hidden_weights[j][-1] = self.hidden_weights[j][-1] + (l_rate * self.hidden_delta[j])  # Update input bias weight
+			self.hidden_weights[j][-1] -= (l_rate * self.hidden_delta[j])  # Update input bias weight
 			for i in range(self.n_input):
 		#		self.hidden_weights[j] = self.hidden_weights[j] - (l_rate * self.hidden_DELTA[j][i])
-				self.hidden_weights[j][i] = self.hidden_weights[j][i] + (l_rate * self.hidden_delta[j] * self.input_activation[i])
+				self.hidden_weights[j][i] -=  (l_rate * self.hidden_delta[j] * self.input_activation[i])
 
 	# Back propagate the errors so we can update the weights. Expected should be converted by using dataset to network.
 	def back_propagate(self, expected):
@@ -131,25 +133,19 @@ class NeuralNetwork(object):
 		n_instance = x.shape[0]
 		n_batch = n_instance / batch_size
 		for epoch in range(n_epoch):
-			instance = 0
-			for batch in range(n_batch):
-				loss = 0.0
-		#		self.hidden_DELTA = np.zeros((self.n_hidden, self.n_input))
-		#		self.output_DELTA = np.zeros((self.n_output, self.n_hidden))
-				for i in range(batch_size):
-					output =  self.forward_propagate(x[instance])
-					expected = dataset_to_network(y[instance], self.n_output)
-					loss += cost_function(output, expected)
-					self.calculate_deltas(expected)
-					instance += 1
-				loss /= batch_size
-		#		self.output_DELTA /= batch_size
-		#		self.hidden_DELTA /= batch_size
+			loss = 0.0
+			for i in range(n_instance):
+				output = self.forward_propagate(x[i])
+				expected = dataset_to_network(y[i], self.n_output)
+				loss += cost_function(output, expected)
+				self.calculate_deltas(expected)
 				self.update_weights(l_rate)
+	#		self.output_DELTA /= batch_size
+	#		self.hidden_DELTA /= batch_size
 
-				print "> epoch=", epoch, "batch=", batch, "loss=", loss
-		#		print "output", output, "expected", expected
-				print self.output_weights
+			print "> epoch=", epoch, "loss=", loss
+			print "output", output, "expected", expected
+	#		print self.output_weights
 
 	def predict(self, input):
 		pass

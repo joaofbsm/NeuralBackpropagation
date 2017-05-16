@@ -42,6 +42,8 @@ class NeuralNetwork(object):
 		self.n_hidden = n_hidden
 		self.n_output = n_output
 
+		np.random.seed(1)
+
 		# Initialize weights with random floats from the half-open interval [0.0, 1.0) * 2 - 1
 		self.hidden_weights = 2 * np.random.random((n_hidden, n_input + 1)) - 1
 		self.output_weights = 2 * np.random.random((n_output, n_hidden + 1)) - 1
@@ -56,8 +58,8 @@ class NeuralNetwork(object):
 		self.output_delta = np.zeros(n_output)
 
 		# DELTA is the accumulator for the (mini)batch gradient descent
-		self.hidden_DELTA = np.zeros((n_hidden, n_input))
-		self.output_DELTA = np.zeros((n_output, n_hidden))
+		self.hidden_DELTA = np.zeros((n_hidden, n_input + 1))
+		self.output_DELTA = np.zeros((n_output, n_hidden + 1))
 
 	# Forward propagation in the network for the given input. The activation function used is the sigmoid function.
 	def forward_propagate(self, input):
@@ -87,10 +89,11 @@ class NeuralNetwork(object):
 		for k in range(self.n_output):
 			self.output_delta[k] = (self.output_activation[k] - expected[k]) * sigmoid_derivative(self.output_activation[k]) 
 
-#		# Update acumulator for weights connected to the output layer
-#		for j in range(self.n_hidden):
-#			for k in range(self.n_output):
-#				self.output_DELTA[k][j] += self.output_delta[k] * self.hidden_activation[j]
+		# Update acumulator for weights connected to the output layer
+		for j in range(self.n_hidden):
+			self.hidden_DELTA[k][-1] += self.output_delta[k]
+			for k in range(self.n_output):
+				self.output_DELTA[k][j] += self.output_delta[k] * self.hidden_activation[j]
 
 		# Hidden layer
 		for j in range(self.n_hidden):
@@ -99,25 +102,27 @@ class NeuralNetwork(object):
 				error += self.output_delta[k] * self.output_weights[k][j]
 			self.hidden_delta[j] = error * sigmoid_derivative(self.hidden_activation[j]) 
 		
-#		# Update acumulator for weights connected to the hidden layer from the input
-#		for i in range(self.n_input):
-#			for j in range(self.n_hidden):
-#				self.hidden_DELTA[j][i] += self.hidden_delta[j] * self.input_activation[i]
+		# Update acumulator for weights connected to the hidden layer from the input
+		for i in range(self.n_input):
+			self.hidden_DELTA[j][-1] += self.hidden_delta[j]
+			for j in range(self.n_hidden):
+				self.hidden_DELTA[j][i] += self.hidden_delta[j] * self.input_activation[i]
 
 	def update_weights(self, l_rate):
 		# Weights of the connections that go from the hidden layer to the output layer(output_weights)
+
 		for k in range(self.n_output):
-			self.output_weights[k][-1] -= (l_rate * self.output_delta[k])  # Update hidden bias weight
+			self.output_weights[k][-1] -= (l_rate * self.output_DELTA[k][-1])  # Update hidden bias weight
 			for j in range(self.n_hidden):
-		#		self.output_weights[k][j] = self.output_weights[k] - (l_rate * self.output_DELTA[k][j])
-				self.output_weights[k][j] -= (l_rate * self.output_delta[k] * self.hidden_activation[j])
+				self.output_weights[k][j] -= (l_rate * self.output_DELTA[k][j])
+		#		self.output_weights[k][j] -= (l_rate * self.output_delta[k] * self.hidden_activation[j])
 
 		# Weights of the connections that go from the input layer to the hidden layer(hidden_weights)
 		for j in range(self.n_hidden):
-			self.hidden_weights[j][-1] -= (l_rate * self.hidden_delta[j])  # Update input bias weight
+			self.hidden_weights[j][-1] -= (l_rate * self.hidden_DELTA[j][-1])  # Update input bias weight
 			for i in range(self.n_input):
-		#		self.hidden_weights[j] = self.hidden_weights[j] - (l_rate * self.hidden_DELTA[j][i])
-				self.hidden_weights[j][i] -=  (l_rate * self.hidden_delta[j] * self.input_activation[i])
+				self.hidden_weights[j][i] -= (l_rate * self.hidden_DELTA[j][i])
+		#		self.hidden_weights[j][i] -=  (l_rate * self.hidden_delta[j] * self.input_activation[i])
 
 	# Back propagate the errors so we can update the weights. Expected should be converted by using dataset to network.
 	def back_propagate(self, expected):
@@ -129,23 +134,34 @@ class NeuralNetwork(object):
 	# - Standard Gradient Descent: epoch size = number of input instances.
 	# - Stochastic Gradient Descent: epoch size = 1.
 	# - Mini-batch Gradient Descent: 1 < epoch size < number of input instances.
-	def train(self, x, y, n_epoch, batch_size, l_rate):
+	def train(self, x, y, n_epoch, batch_size, l_rate, output_file):
 		n_instance = x.shape[0]
 		n_batch = n_instance / batch_size
 		for epoch in range(n_epoch):
+			instance = 0
 			loss = 0.0
-			for i in range(n_instance):
-				output = self.forward_propagate(x[i])
-				expected = dataset_to_network(y[i], self.n_output)
-				loss += cost_function(output, expected)
-				self.calculate_deltas(expected)
+			for batch in range(n_batch):
+				self.hidden_DELTA = np.zeros((self.n_hidden, self.n_input + 1))
+				self.output_DELTA = np.zeros((self.n_output, self.n_hidden + 1))
+				for i in range(batch_size):
+					output =  self.forward_propagate(x[instance])
+					expected = dataset_to_network(y[instance], self.n_output)
+					loss += cost_function(output, expected)
+					if epoch == 0 and batch == 0 and i == 0:
+						with open(output_file, 'a') as f:
+							f.write(str(0) + ',' + str(loss) + '\n')
+							f.close()
+					self.calculate_deltas(expected)
+					instance += 1
+				self.output_DELTA /= batch_size
+				self.hidden_DELTA /= batch_size
 				self.update_weights(l_rate)
-	#		self.output_DELTA /= batch_size
-	#		self.hidden_DELTA /= batch_size
 
-			print "> epoch=", epoch, "loss=", loss
-			print "output", output, "expected", expected
-	#		print self.output_weights
+			loss /= n_instance
+			with open(output_file, 'a') as f:
+				f.write(str(epoch + 1) + ',' + str(loss) + '\n')
+				f.close()
+			print ">epoch=", epoch, "loss=", loss
 
 	def predict(self, input):
 		pass

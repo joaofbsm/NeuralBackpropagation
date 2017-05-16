@@ -5,8 +5,14 @@ Developed by Joao Francisco B. S. Martins <joaofbsm@dcc.ufmg.br>
 """
 
 # TODO
-# - Checar se tamanho dos pesos esta muito grande
-#
+# - Devemos alterar n_input e n_hidden para o mesmo + 1
+# - Cuidado com pesos iniciais negativos
+# - Mudar ordem sinais no calculo do erro -> expected - output
+# - Pode ser + no Update_Weights
+
+# ATE O FORWARD ESTA FUNCIONANDO
+# DELTA tem que ter tamanho dos weights, incluindo bias
+
 
 import numpy as np
 import neural_network as nn
@@ -17,7 +23,7 @@ def load_data(dataset):
 	y = data[:, 0]   # Output values are in the first column
 	x = data[:, 1:]  # Input values are the rest of the data
 	
-	# Data normalization
+	# Feature scaling. All values are now between 0 and 1.
 	x -= x.min()
 	x /= x.max()
 
@@ -31,28 +37,28 @@ def save_data(error):
 data_file = "data_tp1"
 x, y = load_data(data_file)
 
-n_input = x.shape[1]  # Number of input units(input features)
+# Input tem 784 entradas + 1 de Bias
+# Hidden tem x + 1
+
+n_input = x.shape[1] # Number of input units(input features)
+n_hidden = 25 #REMOVE
 n_output = 10         # Number of output units(output classes)
+n_epoch = 1
+batch_size = 1 #REMOVE
+l_rate = 10 #REMOVE
 
-n_hidden = 25 
-n_epoch = 500
-epoch_size = 1
-l_rate = 1
-
-network = nn.NeuralNetwork(n_input, n_hidden, n_output, n_epoch, epoch_size, l_rate)
-print network.forward_propagate(x[0])
+network = nn.NeuralNetwork(n_input, n_hidden, n_output)
+#print network.forward_propagate(x[0])
+network.train(x, y, n_epoch, batch_size, l_rate)
 
 """
-
-
 hidden = (25, 50, 100)
 rate = (0.5, 1, 10)
-epoch = ((50, 1), (20, 10), (10, 50), (5, 5000))
+batch_size = (1, 10, 50, 5000)
 for n_hidden in hidden:
 	for l_rate in rate:
 		for in in range(len(epoch)):
 			network = nn.NeuralNetwork()
-
 
 """
 

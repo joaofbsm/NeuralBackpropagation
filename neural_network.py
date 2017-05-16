@@ -3,7 +3,7 @@
 
 Developed by Joao Francisco B. S. Martins <joaofbsm@dcc.ufmg.br>
 """
-
+import time
 import math
 import numpy as np
 
@@ -28,10 +28,7 @@ def dataset_to_network(value, n_units):
 
 # Cross-entropy cost function
 def cost_function(output, expected):
-	cost = 0.0
-	for k in range(len(expected)):
-		cost += (-expected[k] * np.log(output[k])) - ((1 - expected[k]) * np.log(1 - output[k]))
-	return cost
+	return np.dot(-expected, np.log(output)) - np.dot((1 - expected), np.log(1 - output))
 
 class NeuralNetwork(object):
 
@@ -44,9 +41,9 @@ class NeuralNetwork(object):
 
 		np.random.seed(1)
 
-		# Initialize weights with random floats from the half-open interval [0.0, 1.0) * 2 - 1
-		self.hidden_weights = 2 * np.random.random((n_hidden, n_input + 1)) - 1
-		self.output_weights = 2 * np.random.random((n_output, n_hidden + 1)) - 1
+		# Initialize weights with random floats from the interval [-0.001, 0.001]
+		self.hidden_weights = (2 * np.random.random((n_hidden, n_input + 1)) - 1) * 0.001
+		self.output_weights = (2 * np.random.random((n_output, n_hidden + 1)) - 1) * 0.001
 
 		# Activation values for neurons generated in the forward propagation step
 		self.input_activation = np.zeros(n_input)
@@ -88,12 +85,10 @@ class NeuralNetwork(object):
 		# Output layer
 		for k in range(self.n_output):
 			self.output_delta[k] = (self.output_activation[k] - expected[k]) * sigmoid_derivative(self.output_activation[k]) 
-
-		# Update acumulator for weights connected to the output layer
-		for j in range(self.n_hidden):
-			self.hidden_DELTA[k][-1] += self.output_delta[k]
-			for k in range(self.n_output):
-				self.output_DELTA[k][j] += self.output_delta[k] * self.hidden_activation[j]
+			self.output_DELTA[k][-1] += self.output_delta[k]
+			for j in range(self.n_hidden):
+				# Update acumulator for weights connected to the output layer
+				self.output_DELTA[k][j] += self.output_delta[k] * self.hidden_activation[j]  
 
 		# Hidden layer
 		for j in range(self.n_hidden):
@@ -101,11 +96,9 @@ class NeuralNetwork(object):
 			for k in range(self.n_output):
 				error += self.output_delta[k] * self.output_weights[k][j]
 			self.hidden_delta[j] = error * sigmoid_derivative(self.hidden_activation[j]) 
-		
-		# Update acumulator for weights connected to the hidden layer from the input
-		for i in range(self.n_input):
 			self.hidden_DELTA[j][-1] += self.hidden_delta[j]
-			for j in range(self.n_hidden):
+			for i in range(self.n_input):
+				# Update acumulator for weights connected to the hidden layer from the input
 				self.hidden_DELTA[j][i] += self.hidden_delta[j] * self.input_activation[i]
 
 	def update_weights(self, l_rate):
@@ -124,12 +117,6 @@ class NeuralNetwork(object):
 				self.hidden_weights[j][i] -= (l_rate * self.hidden_DELTA[j][i])
 		#		self.hidden_weights[j][i] -=  (l_rate * self.hidden_delta[j] * self.input_activation[i])
 
-	# Back propagate the errors so we can update the weights. Expected should be converted by using dataset to network.
-	def back_propagate(self, expected):
-
-		self.calculate_deltas(expected)
-		self.update_weights()
-
 	# We use the same training function to run every gradient descent algorithm requested:
 	# - Standard Gradient Descent: epoch size = number of input instances.
 	# - Stochastic Gradient Descent: epoch size = 1.
@@ -139,8 +126,8 @@ class NeuralNetwork(object):
 		n_batch = n_instance / batch_size
 		for epoch in range(n_epoch):
 			instance = 0
-			loss = 0.0
 			for batch in range(n_batch):
+				loss = 0.0
 				self.hidden_DELTA = np.zeros((self.n_hidden, self.n_input + 1))
 				self.output_DELTA = np.zeros((self.n_output, self.n_hidden + 1))
 				for i in range(batch_size):
@@ -156,10 +143,13 @@ class NeuralNetwork(object):
 				self.output_DELTA /= batch_size
 				self.hidden_DELTA /= batch_size
 				self.update_weights(l_rate)
+				loss /= batch_size
+			#	print ">epoch=", epoch, "batch=", batch, "loss=", loss
+#				loss = cost_function(output, expected)
+#				print ">epoch=", epoch, "batch=", batch, "loss=", loss
 
-			loss /= n_instance
 			with open(output_file, 'a') as f:
-				f.write(str(epoch + 1) + ',' + str(loss) + '\n')
+				f.write(str(epoch) + ',' + str(loss) + '\n')
 				f.close()
 			print ">epoch=", epoch, "loss=", loss
 

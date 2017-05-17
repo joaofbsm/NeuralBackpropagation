@@ -103,8 +103,8 @@ class NeuralNetwork(object):
 					loss = cost_function(output, expected)
 					self.calculate_deltas(expected)
 					instance += 1
-				self.output_DELTA /= batch_size
 				self.hidden_DELTA /= batch_size
+				self.output_DELTA /= batch_size
 				self.update_weights(l_rate)
 
 			with open(output_file, 'a') as f:

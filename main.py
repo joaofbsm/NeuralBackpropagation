@@ -16,6 +16,11 @@ TO EXECUTE
  ./main <ARGS>
 """
 
+# TODO
+# - Remove deltas
+# - Try to calculate the error in the correct way
+#
+
 import sys
 import numpy as np
 import neural_network as nn
@@ -43,31 +48,34 @@ def save_data(error):
 	np.savetxt("error.csv", error, delimiter = ",", newline="\n")
 
 data_file = "data_tp1"
-output_file = sys.argv[1]
+#output_file = sys.argv[1]
 x, y = load_data(data_file)
 
-f = open(output_file, 'w')
+#f = open(output_file, 'w')
 
 n_input = 784 # Number of input units(input features) excluding bias
-n_hidden = int(sys.argv[2]) # Number of hidden units excluding bias
+#n_hidden = int(sys.argv[2]) # Number of hidden units excluding bias
 n_output = 10 # Number of output units(output classes)
 
 n_epoch = 100 # Number of epochs with 5000 instances each
-batch_size = int(sys.argv[3])
-l_rate = float(sys.argv[4])
+#batch_size = int(sys.argv[3])
+#l_rate = float(sys.argv[4])
 
-network = nn.NeuralNetwork(n_input, n_hidden, n_output)
-network.train(x, y, n_epoch, batch_size, l_rate, output_file)
+#network = nn.NeuralNetwork(n_input, n_hidden, n_output)
+#network.train(x, y, n_epoch, batch_size, l_rate, output_file)
 
-"""
 hidden = (25, 50, 100)
-batch_size = (1, 10, 50, 5000)
+batch = (1, 10, 50, 5000)
 rate = (0.5, 1, 10)
 for n_hidden in hidden:
-	for b_size in batch_size:
+	for batch_size in batch:
 		for l_rate in rate:
+			output_file = str(n_hidden) + "_" + str(batch_size) + "_" + str(l_rate) + ".csv"
+			print output_file
+			f = open(output_file, 'w')
 			network = nn.NeuralNetwork(n_input, n_hidden, n_output)
-			network.train(x, y, n_epoch, b_size, l_rate)
-"""
+			network.train(x, y, n_epoch, batch_size, l_rate, output_file)
+			f.close()
+
 
 

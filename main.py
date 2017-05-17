@@ -16,9 +16,6 @@ TO EXECUTE
  ./main <ARGS>
 """
 
-# TODO
-# - Make outputs one hot encoded from the beggining to save time
-
 import sys
 import numpy as np
 import neural_network as nn
@@ -28,10 +25,17 @@ def load_data(dataset):
 
 	y = data[:, 0]   # Output values are in the first column
 	x = data[:, 1:]  # Input values are the rest of the data
+
+	aux = np.zeros((y.shape[0], 10))
+	for i in range(y.shape[0]):
+		aux[i][y[i]] = 1
+	y = aux
 	
 	# Feature scaling. All values are now between 0 and 1.
 	x -= x.min()
 	x /= x.max()
+
+	x = np.c_[x, np.ones(x.shape[0])]  # Adds column of ones for bias as last column
 
 	return x, y
 	
@@ -44,8 +48,8 @@ x, y = load_data(data_file)
 
 f = open(output_file, 'w')
 
-n_input = x.shape[1] # Number of input units(input features)
-n_hidden = int(sys.argv[2])
+n_input = 784 # Number of input units(input features) excluding bias
+n_hidden = int(sys.argv[2]) # Number of hidden units excluding bias
 n_output = 10 # Number of output units(output classes)
 
 n_epoch = 100 # Number of epochs with 5000 instances each

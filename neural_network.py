@@ -3,7 +3,6 @@
 
 Developed by Joao Francisco B. S. Martins <joaofbsm@dcc.ufmg.br>
 """
-import time
 import math
 import numpy as np
 
@@ -15,16 +14,6 @@ def sigmoid(x):
 # is: s' = s * (1 - s). x is the value of s already calculated previously.
 def sigmoid_derivative(x):
 	return x * (1.0 - x)
-
-# Convert output layer neurons value to single value output shown in dataset
-def network_to_dataset(layer):
-	return value
-
-# Convert single value output shown in dataset to output layer neurons value
-def dataset_to_network(value, n_units):
-	output_layer = np.zeros(n_units)
-	output_layer[value] = 1.0
-	return output_layer
 
 # Cross-entropy cost function
 def cost_function(output, expected):
@@ -41,15 +30,18 @@ class NeuralNetwork(object):
 
 		np.random.seed(1)
 
-		# Initialize weights with random floats from the interval [-0.001, 0.001]
+		# Initialize weights with random floats from the interval [-0.001, 0.001]. Last weight from every row is the bias
 		self.hidden_weights = (2 * np.random.random((n_hidden, n_input + 1)) - 1) * 0.001
 		self.output_weights = (2 * np.random.random((n_output, n_hidden + 1)) - 1) * 0.001
 
 		# Activation values for neurons generated in the forward propagation step
-		self.input_activation = np.zeros(n_input)
-		self.hidden_activation = np.zeros(n_hidden)
+		self.input_activation = np.zeros(n_input + 1)
+		self.hidden_activation = np.zeros(n_hidden + 1)
 		self.output_activation = np.zeros(n_output)
 
+		# Set bias unit activation to 1
+		self.hidden_activation[-1] = 1
+ 
 		# Delta values initialized as array of 0's
 		self.hidden_delta = np.zeros(n_hidden)
 		self.output_delta = np.zeros(n_output)
@@ -65,57 +57,32 @@ class NeuralNetwork(object):
 		self.input_activation = input
 
 		# Hidden layer
-		for neuron in range(self.n_hidden):
-			activation = self.hidden_weights[neuron][-1]  # Input bias weight
-			for synapse in range(self.n_input):
-				activation += self.input_activation[synapse] * self.hidden_weights[neuron][synapse]
-			self.hidden_activation[neuron] = sigmoid(activation)
+		self.hidden_activation[:(self.n_hidden)] = sigmoid(np.dot(self.hidden_weights, self.input_activation))
 
 		# Output layer
-		for neuron in range(self.n_output):
-			activation = self.output_weights[neuron][-1]  # Hidden bias weight
-			for synapse in range(self.n_hidden):
-				activation += self.hidden_activation[synapse] * self.output_weights[neuron][synapse]
-			self.output_activation[neuron] = sigmoid(activation)
+		self.output_activation = sigmoid(np.dot(self.output_weights, self.hidden_activation))
 
 		return self.output_activation
 
+	# First part in the backpropagation algorithm
 	def calculate_deltas(self, expected):
 
-		# Output layer
-		for k in range(self.n_output):
-			self.output_delta[k] = (self.output_activation[k] - expected[k]) * sigmoid_derivative(self.output_activation[k]) 
-			self.output_DELTA[k][-1] += self.output_delta[k]
-			for j in range(self.n_hidden):
-				# Update acumulator for weights connected to the output layer
-				self.output_DELTA[k][j] += self.output_delta[k] * self.hidden_activation[j]  
+		# Output layer deltas
+		self.output_delta = np.multiply(np.subtract(self.output_activation, expected), sigmoid_derivative(self.output_activation))
+		self.output_DELTA += np.outer(self.output_delta, self.hidden_activation)
 
-		# Hidden layer
-		for j in range(self.n_hidden):
-			error = 0.0
-			for k in range(self.n_output):
-				error += self.output_delta[k] * self.output_weights[k][j]
-			self.hidden_delta[j] = error * sigmoid_derivative(self.hidden_activation[j]) 
-			self.hidden_DELTA[j][-1] += self.hidden_delta[j]
-			for i in range(self.n_input):
-				# Update acumulator for weights connected to the hidden layer from the input
-				self.hidden_DELTA[j][i] += self.hidden_delta[j] * self.input_activation[i]
+		# Hidden layer deltas
+		self.hidden_delta = np.dot(self.output_weights[:,:(self.n_hidden)].transpose(), self.output_delta) * sigmoid_derivative(self.hidden_activation[:(self.n_hidden)])
+		self.hidden_DELTA += np.outer(self.hidden_delta, self.input_activation)
 
+	# Second part in the backpropagation algorithm. Only update weights after the batch is over.
 	def update_weights(self, l_rate):
-		# Weights of the connections that go from the hidden layer to the output layer(output_weights)
 
-		for k in range(self.n_output):
-			self.output_weights[k][-1] -= (l_rate * self.output_DELTA[k][-1])  # Update hidden bias weight
-			for j in range(self.n_hidden):
-				self.output_weights[k][j] -= (l_rate * self.output_DELTA[k][j])
-		#		self.output_weights[k][j] -= (l_rate * self.output_delta[k] * self.hidden_activation[j])
+		# Weights of the connections that go from the hidden layer to the output layer(output_weights)
+		self.output_weights -= l_rate * self.output_DELTA
 
 		# Weights of the connections that go from the input layer to the hidden layer(hidden_weights)
-		for j in range(self.n_hidden):
-			self.hidden_weights[j][-1] -= (l_rate * self.hidden_DELTA[j][-1])  # Update input bias weight
-			for i in range(self.n_input):
-				self.hidden_weights[j][i] -= (l_rate * self.hidden_DELTA[j][i])
-		#		self.hidden_weights[j][i] -=  (l_rate * self.hidden_delta[j] * self.input_activation[i])
+		self.hidden_weights -= l_rate * self.hidden_DELTA
 
 	# We use the same training function to run every gradient descent algorithm requested:
 	# - Standard Gradient Descent: batch size = number of input instances.
@@ -132,17 +99,13 @@ class NeuralNetwork(object):
 				self.output_DELTA = np.zeros((self.n_output, self.n_hidden + 1))
 				for i in range(batch_size):
 					output =  self.forward_propagate(x[instance])
-					expected = dataset_to_network(y[instance], self.n_output)
-					loss += cost_function(output, expected)
+					expected = y[instance]
+					loss = cost_function(output, expected)
 					self.calculate_deltas(expected)
 					instance += 1
 				self.output_DELTA /= batch_size
 				self.hidden_DELTA /= batch_size
 				self.update_weights(l_rate)
-				loss /= batch_size
-			#	print ">epoch=", epoch, "batch=", batch, "loss=", loss
-#				loss = cost_function(output, expected)
-#				print ">epoch=", epoch, "batch=", batch, "loss=", loss
 
 			with open(output_file, 'a') as f:
 				f.write(str(epoch) + ',' + str(loss) + '\n')

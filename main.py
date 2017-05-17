@@ -2,11 +2,22 @@
 3-layer Neural Networks with Backpropagation
 
 Developed by Joao Francisco B. S. Martins <joaofbsm@dcc.ufmg.br>
+
+TO EXECUTE
+ python main.py <OUTPUT_FILE> <HIDDEN_UNITS> <BATCH_SIZE> <LEARNING_RATE>
+
+ In order to choose between different gradient descent algorithms, choose BATCH_SIZE such that:
+	 - Standard Gradient Descent: batch size = number of input instances.
+	 - Stochastic Gradient Descent: batch size = 1.
+	 - Mini-batch Gradient Descent: 1 < batch size < number of input instances.
+
+ To execute the script directly:
+ chmod +x ./main
+ ./main <ARGS>
 """
 
 # TODO
-# - Qual o erro de cada epoca?
-# - Voce salva o erro inicial dos pesos aleatorios?
+# - Make outputs one hot encoded from the beggining to save time
 
 import sys
 import numpy as np

@@ -118,9 +118,9 @@ class NeuralNetwork(object):
 		#		self.hidden_weights[j][i] -=  (l_rate * self.hidden_delta[j] * self.input_activation[i])
 
 	# We use the same training function to run every gradient descent algorithm requested:
-	# - Standard Gradient Descent: epoch size = number of input instances.
-	# - Stochastic Gradient Descent: epoch size = 1.
-	# - Mini-batch Gradient Descent: 1 < epoch size < number of input instances.
+	# - Standard Gradient Descent: batch size = number of input instances.
+	# - Stochastic Gradient Descent: batch size = 1.
+	# - Mini-batch Gradient Descent: 1 < batch size < number of input instances.
 	def train(self, x, y, n_epoch, batch_size, l_rate, output_file):
 		n_instance = x.shape[0]
 		n_batch = n_instance / batch_size
@@ -134,10 +134,6 @@ class NeuralNetwork(object):
 					output =  self.forward_propagate(x[instance])
 					expected = dataset_to_network(y[instance], self.n_output)
 					loss += cost_function(output, expected)
-					if epoch == 0 and batch == 0 and i == 0:
-						with open(output_file, 'a') as f:
-							f.write(str(0) + ',' + str(loss) + '\n')
-							f.close()
 					self.calculate_deltas(expected)
 					instance += 1
 				self.output_DELTA /= batch_size

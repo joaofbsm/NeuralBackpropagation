@@ -16,11 +16,6 @@ TO EXECUTE
  ./main <ARGS>
 """
 
-# TODO
-# - Remove deltas
-# - Try to calculate the error in the correct way
-#
-
 import sys
 import numpy as np
 import neural_network as nn
@@ -65,12 +60,12 @@ n_epoch = 100 # Number of epochs with 5000 instances each
 #network.train(x, y, n_epoch, batch_size, l_rate, output_file)
 
 hidden = (25, 50, 100)
-batch = (1, 10, 50, 5000)
+batch = (10, 50, 5000)
 rate = (0.5, 1, 10)
 for n_hidden in hidden:
 	for batch_size in batch:
 		for l_rate in rate:
-			output_file = str(n_hidden) + "_" + str(batch_size) + "_" + str(l_rate) + ".csv"
+			output_file = "../" + str(n_hidden) + "_" + str(batch_size) + "_" + str(l_rate) + ".csv"
 			print output_file
 			f = open(output_file, 'w')
 			network = nn.NeuralNetwork(n_input, n_hidden, n_output)

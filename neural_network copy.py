@@ -18,7 +18,18 @@ def sigmoid_derivative(x):
 
 # Cross-entropy cost function
 def cost_function(output, expected):
-	return np.sum((-expected * np.log(output)) - ((1 - expected) * np.log(1 - output))) / expected.shape[0]
+	cost = 0.0
+	for i in range(expected.shape[0]):
+		for k in range(expected.shape[1]):
+			cost += (-expected[i][k] * np.log(output[i][k])) - ((1 - expected[i][k]) * np.log(1 - output[i][k]))
+	cost = cost / expected.shape[0]
+	print "Cost1", cost
+	cost = np.sum((-expected * np.log(output)) - ((1 - expected) * np.log(1 - output))) / expected.shape[0]
+	print "Cost2", cost
+	cost = np.dot(-expected, np.log(output)) - np.dot((1 - expected), np.log(1 - output))
+	print "Cost3", cost
+	time.sleep(2)
+	return cost
 
 class NeuralNetwork(object):
 
@@ -112,9 +123,9 @@ class NeuralNetwork(object):
 				self.update_weights(l_rate)
 				loss = cost_function(output_matrix[1:,], expected_matrix[1:,])
 
-			with open(output_file, 'a') as f:
-				f.write(str(epoch) + ',' + str(loss) + '\n')
-				f.close()
+			#with open(output_file, 'a') as f:
+			#	f.write(str(epoch) + ',' + str(loss) + '\n')
+			#	f.close()
 			print ">epoch=", epoch, "loss=", loss
 
 	def predict(self, input):
